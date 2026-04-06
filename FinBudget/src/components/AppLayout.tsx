@@ -14,6 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/transactions', label: 'รายการ' },
     { href: '/suppliers', label: 'Suppliers' },
     { href: '/categories', label: 'หมวดหมู่' },
+    { href: '/bank-accounts', label: 'บัญชีธนาคาร' },
   ]
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
