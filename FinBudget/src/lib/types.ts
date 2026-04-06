@@ -40,10 +40,22 @@ export interface Payment {
   id: string
   transaction_id: string
   user_id: string
+  from_account_id: string | null
   amount: number
   payment_date: string
   slip_url: string | null
   note: string | null
+  created_at: string
+  bank_account?: BankAccount
+}
+
+export interface BankAccount {
+  id: string
+  user_id: string
+  bank_name: string
+  account_number: string
+  account_name: string | null
+  is_default: boolean
   created_at: string
 }
 
