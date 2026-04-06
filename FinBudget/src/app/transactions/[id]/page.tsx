@@ -215,53 +215,6 @@ export default function TransactionDetailPage() {
 
         const { error: txUpdateError } = await supabase
           .from('transactions')
-          .update({ paid_amount: newPaidAmount }Id}_${Date.now()}.${fileExt}`
-
-        const { error: uploadError } = await supabase.storage
-          .from('slips')
-          .upload(fileName, paymentForm.slip)
-
-        if (uploadError) throw uploadError
-
-        const { data: publicUrlData } = supabase.storage
-          .from('slips')
-          .getPublicUrl(fileName)
-
-        slip_url = publicUrlData.publicUrl
-      }
-
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setError('à¸à¸£à¸¸à¸à¸²à¹à¸à¹à¸²à¸ªà¸¹à¹à¸£à¸°à¸à¸')
-        return
-      }
-
-      if (editingPaymentId) {
-        // UPDATE existing payment
-        const updateData: Record<string, unknown> = {
-          amount: amount,
-          payment_date: paymentForm.payment_date,
-          from_account_id: paymentForm.from_account_id || null,
-          note: paymentForm.note || null,
-        }
-        if (slip_url) {
-          updateData.slip_url = slip_url
-        }
-
-        const { error: updateError } = await supabase
-          .from('payments')
-          .update(updateData)
-          .eq('id', editingPaymentId)
-
-        if (updateError) throw updateError
-
-        // Recalculate paid_amount
-        const oldPayment = payments.find((p) => p.id === editingPaymentId)
-        const diff = amount - (oldPayment?.amount || 0)
-        const newPaidAmount = transaction!.paid_amount + diff
-
-        const { error: txUpdateError } = await supabase
-          .from('transactions')
           .update({ paid_amount: newPaidAmount })
           .eq('id', transactionId)
 
