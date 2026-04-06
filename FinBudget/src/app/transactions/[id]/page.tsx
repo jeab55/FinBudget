@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-client'
-import { Transaction, Payment, STATUS_MAP } from '@/lib/types'
+import { Transaction, Payment, BankAccount, STATUS_MAP } from '@/lib/types'
 import { ArrowLeft, Edit2, Upload, Plus, Download } from 'lucide-react'
 
 function formatCurrency(amount: number): string {
@@ -19,6 +19,7 @@ export default function TransactionDetailPage() {
 
   const [transaction, setTransaction] = useState<Transaction | null>(null)
   const [payments, setPayments] = useState<Payment[]>([])
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [loading, setLoading] = useState(true)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [submittingPayment, setSubmittingPayment] = useState(false)
@@ -29,6 +30,7 @@ export default function TransactionDetailPage() {
   const [paymentForm, setPaymentForm] = useState({
     amount: '',
     payment_date: new Date().toISOString().split('T')[0],
+    from_account_id: '',
     note: '',
     slip: null as File | null,
   })
@@ -39,16 +41,31 @@ export default function TransactionDetailPage() {
 
   async function fetchTransaction() {
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*, supplier:suppliers(*), category:categories(*), payments(*)')
-        .eq('id', transactionId)
-        .single()
+      const [transRes, accountsRes] = await Promise.all([
+        supabase
+          .from('transactions')
+          .select('*, supplier:suppliers(*), category:categories(*), payments(*, bank_account:bank_accounts(*))')
+          .eq('id', transactionId)
+          .single(),
+        supabase
+          .from('bank_accounts')
+          .select('*')
+          .order('is_default', { ascending: false })
+          .order('created_at', { ascending: false }),
+      ])
 
-      if (error) throw error
+      if (transRes.error) throw transRes.error
 
-      setTransaction(data)
-      setPayments(data.payments || [])
+      setTransaction(transRes.data)
+      setPayments(transRes.data.payments || [])
+
+      if (!accountsRes.error && accountsRes.data) {
+        setBankAccounts(accountsRes.data)
+        const defaultAcc = accountsRes.data.find((a: BankAccount) => a.is_default)
+        if (defaultAcc) {
+          setPaymentForm((prev) => ({ ...prev, from_account_id: defaultAcc.id }))
+        }
+      }
     } catch (err) {
       console.error('Error fetching transaction:', err)
       setError('ไม่สามารถโหลดข้อมูลรายการ')
@@ -91,7 +108,6 @@ export default function TransactionDetailPage() {
     try {
       let slip_url = null
 
-      // Upload slip if provided
       if (paymentForm.slip) {
         const fileExt = paymentForm.slip.name.split('.').pop()
         const fileName = `${transactionId}_${Date.now()}.${fileExt}`
@@ -109,10 +125,17 @@ export default function TransactionDetailPage() {
         slip_url = publicUrlData.publicUrl
       }
 
-      // Insert payment
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setError('กรุณาเข้าสู่ระบบ')
+        return
+      }
+
       const { error: insertError } = await supabase.from('payments').insert([
         {
+          user_id: user.id,
           transaction_id: transactionId,
+          from_account_id: paymentForm.from_account_id || null,
           amount: amount,
           payment_date: paymentForm.payment_date,
           slip_url: slip_url,
@@ -122,7 +145,6 @@ export default function TransactionDetailPage() {
 
       if (insertError) throw insertError
 
-      // Update transaction paid_amount and status
       const newPaidAmount = transaction!.paid_amount + amount
       const newStatus = paymentForm.slip ? 'slip_uploaded' : 'pending'
 
@@ -137,10 +159,10 @@ export default function TransactionDetailPage() {
       if (updateError) throw updateError
 
       setSuccess('บันทึกการจ่ายเงินสำเร็จ')
-      setPaymentForm({ amount: '', payment_date: new Date().toISOString().split('T')[0], note: '', slip: null })
+      const defaultAcc = bankAccounts.find((a) => a.is_default)
+      setPaymentForm({ amount: '', payment_date: new Date().toISOString().split('T')[0], from_account_id: defaultAcc?.id || '', note: '', slip: null })
       setShowPaymentModal(false)
 
-      // Refresh data
       await fetchTransaction()
     } catch (err) {
       console.error('Error adding payment:', err)
@@ -313,6 +335,7 @@ export default function TransactionDetailPage() {
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">วันที่จ่าย</th>
                       <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">จำนวนเงิน</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">จากบัญชี</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">สลิป</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">หมายเหตุ</th>
                     </tr>
@@ -325,6 +348,11 @@ export default function TransactionDetailPage() {
                         </td>
                         <td className="px-4 py-3 text-sm font-semibold text-right text-gray-900">
                           {formatCurrency(payment.amount)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {payment.bank_account
+                            ? `${payment.bank_account.bank_name} ${payment.bank_account.account_number}`
+                            : '-'}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {payment.slip_url ? (
@@ -417,6 +445,23 @@ export default function TransactionDetailPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">โอนจากบัญชี</label>
+                <select
+                  name="from_account_id"
+                  value={paymentForm.from_account_id}
+                  onChange={(e) => setPaymentForm((prev) => ({ ...prev, from_account_id: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">-- เลือกบัญชี --</option>
+                  {bankAccounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.bank_name} - {acc.account_number}{acc.is_default ? ' (ค่าเริ่มต้น)' : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
