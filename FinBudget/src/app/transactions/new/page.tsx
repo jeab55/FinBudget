@@ -73,8 +73,15 @@ export default function NewTransactionPage() {
     setSubmitting(true)
 
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setError('กรุณาเข้าสู่ระบบ')
+        return
+      }
+
       const { error } = await supabase.from('transactions').insert([
         {
+          user_id: user.id,
           description: formData.description,
           supplier_id: formData.supplier_id || null,
           category_id: formData.category_id || null,
