@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-client'
-import { Transaction, Payment, BankAccount, STATUSEMAP } from '@/lib/types'
+import { Transaction, Payment, BankAccount, STATUS_MAP } from '@/lib/types'
 import { ArrowLeft, Edit2, Upload, Plus, Download, Pencil, Trash2 } from 'lucide-react'
 
 function formatCurrency(amount: number): string {
@@ -185,7 +185,7 @@ export default function TransactionDetailPage() {
 
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        setError('กรุณาเข้าสู่ระบพ')
+        setError('กรุณาเข้าสู่ระบบ')
         return
       }
 
