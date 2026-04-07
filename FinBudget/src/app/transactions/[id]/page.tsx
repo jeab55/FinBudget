@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-client'
-import { Transaction, Payment, BankAccount, STATUS_MAP } from '@/lib/types'
+import { Transaction, Payment, BankAccount, STATUSEMAP } from '@/lib/types'
 import { ArrowLeft, Edit2, Upload, Plus, Download, Pencil, Trash2 } from 'lucide-react'
 
 function formatCurrency(amount: number): string {
-  return `à¸¿${amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `฿${amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 export default function TransactionDetailPage() {
@@ -72,7 +72,7 @@ export default function TransactionDetailPage() {
       }
     } catch (err) {
       console.error('Error fetching transaction:', err)
-      setError('à¹à¸¡à¹à¸ªà¸²à¸¡à¸²à¸£à¸à¹à¸«à¸¥à¸à¸à¹à¸­à¸¡à¸¹à¸¥à¸£à¸²à¸¢à¸à¸²à¸£')
+      setError('ไม่สามารถโหลดข้อมูลรายการ')
     } finally {
       setLoading(false)
     }
@@ -102,21 +102,21 @@ export default function TransactionDetailPage() {
     const errors: Record<string, string> = {}
 
     if (!paymentForm.amount || paymentForm.amount.trim() === '') {
-      errors.amount = 'à¸à¸£à¸¸à¸à¸²à¸à¸£à¸­à¸à¸à¸³à¸à¸§à¸à¹à¸à¸´à¸'
+      errors.amount = 'กรุณากรอกจำนวนเงิน'
     } else if (parseFloat(paymentForm.amount) <= 0) {
-      errors.amount = 'à¸à¸³à¸à¸§à¸à¹à¸à¸´à¸à¸à¹à¸­à¸à¸¡à¸²à¸à¸à¸§à¹à¸² 0'
+      errors.amount = 'จำนวนเงินต้องมากกว่า 0'
     } else if (transaction) {
       const amount = parseFloat(paymentForm.amount)
       // When editing, add back the original amount to remaining
       const editingPayment = editingPaymentId ? payments.find((p) => p.id === editingPaymentId) : null
       const effectiveRemaining = transaction.total_amount - transaction.paid_amount + (editingPayment?.amount || 0)
       if (amount > effectiveRemaining) {
-        errors.amount = `à¸à¸³à¸à¸§à¸à¹à¸à¸´à¸à¹à¸à¸´à¸à¸à¸§à¹à¸²à¸à¸µà¹à¸à¹à¸²à¸à¸à¸³à¸£à¸° (${formatCurrency(effectiveRemaining)})`
+        errors.amount = `จำนวนเงินเกินกว่าที่ค้างชำระ (${formatCurrency(effectiveRemaining)})`
       }
     }
 
     if (!paymentForm.payment_date || paymentForm.payment_date.trim() === '') {
-      errors.payment_date = 'à¸à¸£à¸¸à¸à¸²à¹à¸¥à¸·à¸­à¸à¸§à¸±à¸à¸à¸µà¹à¸à¹à¸²à¸¢'
+      errors.payment_date = 'กรุณาเลือกวันที่จ่าย'
     }
 
     setFieldErrors(errors)
@@ -185,7 +185,7 @@ export default function TransactionDetailPage() {
 
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        setError('à¸à¸£à¸¸à¸à¸²à¹à¸à¹à¸²à¸ªà¸¹à¹à¸£à¸°à¸à¸')
+        setError('กรุณาเข้าสู่ระบพ')
         return
       }
 
@@ -220,7 +220,7 @@ export default function TransactionDetailPage() {
 
         if (txUpdateError) throw txUpdateError
 
-        setSuccess('à¹à¸à¹à¹à¸à¸à¸²à¸£à¸à¹à¸²à¸¢à¹à¸à¸´à¸à¸ªà¸³à¹à¸£à¹à¸')
+        setSuccess('แก้ไขการจ่ายเงินสำเร็จ')
       } else {
         // INSERT new payment
         const { error: insertError } = await supabase.from('payments').insert([
@@ -250,7 +250,7 @@ export default function TransactionDetailPage() {
 
         if (updateError) throw updateError
 
-        setSuccess('à¸à¸±à¸à¸à¸¶à¸à¸à¸²à¸£à¸à¹à¸²à¸¢à¹à¸à¸´à¸à¸ªà¸³à¹à¸£à¹à¸')
+        setSuccess('บันทึกการจ่ายเงินสำเร็จ')
       }
 
       setShowPaymentModal(false)
@@ -258,7 +258,7 @@ export default function TransactionDetailPage() {
       await fetchTransaction()
     } catch (err) {
       console.error('Error saving payment:', err)
-      setError('à¹à¸¡à¹à¸ªà¸²à¸¡à¸²à¸£à¸à¸à¸±à¸à¸à¸¶à¸à¸à¸²à¸£à¸à¹à¸²à¸¢à¹à¸à¸´à¸')
+      setError('ไม่สามารถบันทึกการจ่ายเงิน')
     } finally {
       setSubmittingPayment(false)
     }
@@ -291,11 +291,11 @@ export default function TransactionDetailPage() {
       if (updateError) throw updateError
 
       setShowDeleteConfirm(null)
-      setSuccess('à¸¥à¸à¸£à¸²à¸¢à¸à¸²à¸£à¸à¹à¸²à¸¢à¹à¸à¸´à¸à¸ªà¸³à¹à¸£à¹à¸')
+      setSuccess('ลบรายการจ่ายเงินสำเร็จ')
       await fetchTransaction()
     } catch (err) {
       console.error('Error deleting payment:', err)
-      setError('à¹à¸¡à¹à¸ªà¸²à¸¡à¸²à¸£à¸à¸¥à¸à¸£à¸²à¸¢à¸à¸²à¸£à¸à¹à¸²à¸¢à¹à¸à¸´à¸')
+      setError('ไม่สามารถลบรายการจ่ายเงิน')
     } finally {
       setDeletingPayment(false)
     }
@@ -304,7 +304,7 @@ export default function TransactionDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="text-gray-500">à¸à¸³à¸¥à¸±à¸à¹à¸«à¸¥à¸...</div>
+        <div className="text-gray-500">กำลังโหลด...</div>
       </div>
     )
   }
@@ -312,9 +312,9 @@ export default function TransactionDetailPage() {
   if (!transaction) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500 mb-4">à¹à¸¡à¹à¸à¸à¸£à¸²à¸¢à¸à¸²à¸£</p>
+        <p className="text-gray-500 mb-4">ไม่พบรายการ</p>
         <Link href="/transactions" className="text-blue-600 hover:text-blue-700">
-          à¸à¸¥à¸±à¸à¹à¸à¸£à¸²à¸¢à¸à¸²à¸£
+          กลับไปรายการ
         </Link>
       </div>
     )
@@ -337,7 +337,7 @@ export default function TransactionDetailPage() {
           </button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{transaction.description}</h1>
-            <p className="text-gray-500 mt-1">à¸à¸¹à¸£à¸²à¸¢à¸¥à¸°à¹à¸­à¸µà¸¢à¸à¹à¸¥à¸°à¸à¸±à¸à¸à¸¶à¸à¸à¸²à¸£à¸à¹à¸²à¸¢à¹à¸à¸´à¸</p>
+            <p className="text-gray-500 mt-1">ดูรายละเอียดและบันทึกการจ่ายเงิน</p>
           </div>
         </div>
         <Link
@@ -345,7 +345,7 @@ export default function TransactionDetailPage() {
           className="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-900 px-4 py-2 rounded-lg font-medium transition-colors"
         >
           <Edit2 size={18} />
-          à¹à¸à¹à¹à¸
+          แก้ไข
         </Link>
       </div>
 
@@ -368,30 +368,30 @@ export default function TransactionDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Info Cards */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">à¸à¹à¸­à¸¡à¸¹à¸¥à¸£à¸²à¸¢à¸à¸²à¸£</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">ข้อมูลรายการ</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-600">Supplier</p>
                 <p className="font-semibold text-gray-900">{transaction.supplier?.name || '-'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">à¸«à¸¡à¸§à¸à¸«à¸¡à¸¹à¹</p>
+                <p className="text-sm text-gray-600">หมวดหมู่</p>
                 <p className="font-semibold text-gray-900">{transaction.category?.name || '-'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">à¸ªà¸à¸²à¸à¸°</p>
+                <p className="text-sm text-gray-600">สถานะ</p>
                 <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mt-1 ${status.bg} ${status.color}`}>
                   {status.label}
                 </span>
               </div>
               <div>
-                <p className="text-sm text-gray-600">à¸§à¸±à¸à¸à¸µà¹à¸ªà¸£à¹à¸²à¸</p>
+                <p className="text-sm text-gray-600">วันที่สร้าง</p>
                 <p className="font-semibold text-gray-900">
                   {new Date(transaction.created_at).toLocaleDateString('th-TH')}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">à¸§à¸±à¸à¸à¸£à¸à¸à¸³à¸«à¸à¸</p>
+                <p className="text-sm text-gray-600">วันครบกำหนด</p>
                 <p className="font-semibold text-gray-900">
                   {transaction.due_date
                     ? new Date(transaction.due_date).toLocaleDateString('th-TH')
@@ -401,7 +401,7 @@ export default function TransactionDetailPage() {
             </div>
             {transaction.note && (
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-600">à¸«à¸¡à¸²à¸¢à¹à¸«à¸à¸¸</p>
+                <p className="text-sm text-gray-600">หมายเหตุ</p>
                 <p className="text-gray-900 mt-1">{transaction.note}</p>
               </div>
             )}
@@ -409,11 +409,11 @@ export default function TransactionDetailPage() {
 
           {/* Payment Progress */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">à¸à¸§à¸²à¸¡à¸à¸·à¸à¸«à¸à¹à¸²à¸à¸²à¸£à¸à¸³à¸£à¸°</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">ความคืบหน้าการชำระ</h2>
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">à¸¢à¸­à¸à¸£à¸§à¸¡</span>
+                  <span className="text-sm font-medium text-gray-700">ยอดรวม</span>
                   <span className="text-sm font-semibold text-gray-900">{formatCurrency(transaction.total_amount)}</span>
                 </div>
               </div>
@@ -427,15 +427,15 @@ export default function TransactionDetailPage() {
 
               <div className="grid grid-cols-3 gap-4 pt-2">
                 <div>
-                  <p className="text-sm text-gray-600">à¸à¸³à¸£à¸°à¹à¸¥à¹à¸§</p>
+                  <p className="text-sm text-gray-600">ชำระแล้ว</p>
                   <p className="text-lg font-bold text-green-600">{formatCurrency(transaction.paid_amount)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">à¸à¸à¹à¸«à¸¥à¸·à¸­</p>
+                  <p className="text-sm text-gray-600">คงเหลือ</p>
                   <p className="text-lg font-bold text-orange-600">{formatCurrency(remaining)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">à¸£à¹à¸­à¸¢à¸¥à¸°</p>
+                  <p className="text-sm text-gray-600">ร้อยละ</p>
                   <p className="text-lg font-bold text-blue-600">{Math.round(progressPercent)}%</p>
                 </div>
               </div>
@@ -445,14 +445,14 @@ export default function TransactionDetailPage() {
           {/* Payment History */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">à¸à¸£à¸°à¸§à¸±à¸à¸´à¸à¸²à¸£à¸à¹à¸²à¸¢à¹à¸à¸´à¸</h2>
+              <h2 className="text-xl font-bold text-gray-900">ประวัติการจ่ายเงิน</h2>
               {remaining > 0 && (
                 <button
                   onClick={openAddPaymentModal}
                   className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
                   <Plus size={16} />
-                  à¸à¸±à¸à¸à¸¶à¸à¸à¸²à¸£à¸à¹à¸²à¸¢
+                  บันทึกการจ่าย
                 </button>
               )}
             </div>
@@ -462,12 +462,12 @@ export default function TransactionDetailPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">à¸§à¸±à¸à¸à¸µà¹à¸à¹à¸²à¸¢</th>
-                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">à¸à¸³à¸à¸§à¸à¹à¸à¸´à¸</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">à¸à¸²à¸à¸à¸±à¸à¸à¸µ</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">à¸ªà¸¥à¸´à¸</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">à¸«à¸¡à¸²à¸¢à¹à¸«à¸à¸¸</th>
-                      <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">à¸à¸±à¸à¸à¸²à¸£</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">วันที่จ่าย</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">จำนวนเงิน</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">จากบัญชี</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">สลิป</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">หมายเหตุ</th>
+                      <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">จัดการ</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -491,7 +491,7 @@ export default function TransactionDetailPage() {
                               className="text-blue-600 hover:text-blue-700 flex items-center gap-1 font-medium"
                             >
                               <Download size={16} />
-                              à¸à¸¹à¸ªà¸¥à¸´à¸
+                              ดูสลิป
                             </button>
                           ) : (
                             '-'
@@ -503,14 +503,14 @@ export default function TransactionDetailPage() {
                             <button
                               onClick={() => openEditPaymentModal(payment)}
                               className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="à¹à¸à¹à¹à¸"
+                              title="แก้ไข"
                             >
                               <Pencil size={16} />
                             </button>
                             <button
                               onClick={() => setShowDeleteConfirm(payment.id)}
                               className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="à¸¥à¸"
+                              title="ลบ"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -522,7 +522,7 @@ export default function TransactionDetailPage() {
                 </table>
               </div>
             ) : (
-              <p className="text-gray-500 py-4">à¸¢à¸±à¸à¹à¸¡à¹à¸¡à¸µà¸à¸²à¸£à¸à¸±à¸à¸à¸¶à¸à¸à¸²à¸£à¸à¹à¸²à¸¢à¹à¸à¸´à¸</p>
+              <p className="text-gray-500 py-4">ยังไม่มีการบันทึกการจ่ายเงิน</p>
             )}
           </div>
         </div>
@@ -530,18 +530,18 @@ export default function TransactionDetailPage() {
         {/* Sidebar */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow p-6 sticky top-8">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">à¸ªà¸£à¸¸à¸</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">สรุป</h3>
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-600">à¸¢à¸­à¸à¸£à¸§à¸¡</p>
+                <p className="text-sm text-gray-600">ยอดรวม</p>
                 <p className="text-2xl font-bold text-gray-900">{formatCurrency(transaction.total_amount)}</p>
               </div>
               <div className="border-t pt-4">
-                <p className="text-sm text-gray-600">à¸à¸³à¸£à¸°à¹à¸¥à¹à¸§</p>
+                <p className="text-sm text-gray-600">ชำระแล้ว</p>
                 <p className="text-2xl font-bold text-green-600">{formatCurrency(transaction.paid_amount)}</p>
               </div>
               <div className="border-t pt-4">
-                <p className="text-sm text-gray-600">à¸à¸à¹à¸«à¸¥à¸·à¸­</p>
+                <p className="text-sm text-gray-600">คงเหลือ</p>
                 <p className="text-2xl font-bold text-orange-600">{formatCurrency(remaining)}</p>
               </div>
               {remaining > 0 && (
@@ -550,7 +550,7 @@ export default function TransactionDetailPage() {
                   className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                 >
                   <Plus size={18} />
-                  à¸à¸±à¸à¸à¸¶à¸à¸à¸²à¸£à¸à¹à¸²à¸¢à¹à¸à¸´à¸
+                  บันทึกการจ่ายเงิน
                 </button>
               )}
             </div>
@@ -563,17 +563,17 @@ export default function TransactionDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
-              {editingPaymentId ? 'à¹à¸à¹à¹à¸à¸à¸²à¸£à¸à¹à¸²à¸¢à¹à¸à¸´à¸' : 'à¸à¸±à¸à¸à¸¶à¸à¸à¸²à¸£à¸à¹à¸²à¸¢à¹à¸à¸´à¸'}
+              {editingPaymentId ? 'แก้ไขการจ่ายเงิน' : 'บันทึกการจ่ายเงิน'}
             </h3>
 
             <form onSubmit={handleSubmitPayment} className="space-y-4" noValidate>
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
-                  à¸à¸³à¸à¸§à¸à¹à¸à¸´à¸ {!editingPaymentId && `(à¸à¸à¹à¸«à¸¥à¸·à¸­: ${formatCurrency(remaining)})`}
+                  จำนวนเงิน {!editingPaymentId && `(คงเหลือ: ${formatCurrency(remaining)})`}
                   {editingPaymentId && (() => {
                     const editPayment = payments.find((p) => p.id === editingPaymentId)
                     const effectiveRemaining = remaining + (editPayment?.amount || 0)
-                    return ` (à¸à¸à¹à¸«à¸¥à¸·à¸­: ${formatCurrency(effectiveRemaining)})`
+                    return ` (คงเหลือ: ${formatCurrency(effectiveRemaining)})`
                   })()}
                   <span className="text-red-500"> *</span>
                 </label>
@@ -594,7 +594,7 @@ export default function TransactionDetailPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
-                  à¸§à¸±à¸à¸à¸µà¹à¸à¹à¸²à¸¢ <span className="text-red-500">*</span>
+                  วันที่จ่าย <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -609,29 +609,29 @@ export default function TransactionDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">à¹à¸­à¸à¸à¸²à¸à¸à¸±à¸à¸à¸µ</label>
+                <label className="block text-sm font-medium text-gray-900 mb-2">โอนจากบัญชี</label>
                 <select
                   name="from_account_id"
                   value={paymentForm.from_account_id}
                   onChange={(e) => setPaymentForm((prev) => ({ ...prev, from_account_id: e.target.value }))}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="">-- à¹à¸¥à¸·à¸­à¸à¸à¸±à¸à¸à¸µ --</option>
+                  <option value="">-- เลือกบัญชี --</option>
                   {bankAccounts.map((acc) => (
                     <option key={acc.id} value={acc.id}>
-                      {acc.bank_name} - {acc.account_number}{acc.is_default ? ' (à¸à¹à¸²à¹à¸£à¸´à¹à¸¡à¸à¹à¸)' : ''}
+                      {acc.bank_name} - {acc.account_number}{acc.is_default ? ' (ค่าเริ่มต้น)' : ''}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">à¸«à¸¡à¸²à¸¢à¹à¸«à¸à¸¸</label>
+                <label className="block text-sm font-medium text-gray-900 mb-2">หมายเหตุ</label>
                 <textarea
                   name="note"
                   value={paymentForm.note}
                   onChange={handlePaymentChange}
-                  placeholder="à¹à¸à¸´à¹à¸¡à¹à¸à¸´à¸¡à¸à¹à¸­à¸¡à¸¹à¸¥"
+                  placeholder="เพิ่มเติมข้อมูล"
                   rows={2}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 />
@@ -639,12 +639,12 @@ export default function TransactionDetailPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
-                  à¸­à¸±à¸à¹à¸«à¸¥à¸à¸ªà¸¥à¸´à¸ {editingPaymentId && '(à¹à¸¥à¸·à¸­à¸à¹à¸à¸¥à¹à¹à¸«à¸¡à¹à¹à¸à¸·à¹à¸­à¹à¸à¸¥à¸µà¹à¸¢à¸)'}
+                  อัพโหลดสลิป {editingPaymentId && '(เลือกไฟล์ใหม่เพื่อเปลี่ยน)'}
                 </label>
                 <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:border-blue-500 transition-colors">
                   <Upload size={20} className="text-gray-400" />
                   <span className="text-sm text-gray-600">
-                    {paymentForm.slip ? paymentForm.slip.name : 'à¸à¸¥à¸´à¸à¹à¸à¸·à¹à¸­à¸­à¸±à¸à¹à¸«à¸¥à¸'}
+                    {paymentForm.slip ? paymentForm.slip.name : 'คลิกเพื่ออัพโหลด'}
                   </span>
                   <input
                     type="file"
@@ -661,14 +661,14 @@ export default function TransactionDetailPage() {
                   disabled={submittingPayment}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg font-medium transition-colors"
                 >
-                  {submittingPayment ? 'à¸à¸³à¸¥à¸±à¸à¸à¸±à¸à¸à¸¶à¸...' : editingPaymentId ? 'à¸à¸±à¸à¸à¸¶à¸à¸à¸²à¸£à¹à¸à¹à¹à¸' : 'à¸à¸±à¸à¸à¸¶à¸'}
+                  {submittingPayment ? 'กำลังบันทึก...' : editingPaymentId ? 'บันทึกการแก้ไข' : 'บันทึก'}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setShowPaymentModal(false); setEditingPaymentId(null); setFieldErrors({}) }}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 py-2 px-4 rounded-lg font-medium transition-colors"
                 >
-                  à¸¢à¸à¹à¸¥à¸´à¸
+                  ยกเลิก
                 </button>
               </div>
             </form>
@@ -680,9 +680,9 @@ export default function TransactionDetailPage() {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-lg max-w-sm w-full p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">à¸¢à¸·à¸à¸¢à¸±à¸à¸à¸²à¸£à¸¥à¸</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">ยืนยันการลบ</h3>
             <p className="text-gray-600 mb-6">
-              à¸à¸¸à¸à¸à¹à¸­à¸à¸à¸²à¸£à¸¥à¸à¸£à¸²à¸¢à¸à¸²à¸£à¸à¹à¸²à¸¢à¹à¸à¸´à¸à¸à¸µà¹à¸«à¸£à¸·à¸­à¹à¸¡à¹? à¸¢à¸­à¸à¸à¸³à¸£à¸°à¸à¸°à¸à¸¹à¸à¸à¸£à¸±à¸à¸¥à¸à¸à¸²à¸¡à¸à¸³à¸à¸§à¸à¹à¸à¸´à¸à¸à¸µà¹à¸¥à¸
+              คุณต้องการลบรายการจ่ายเงินนี้หรือไม่? ยอดชำระจะถูกปรับลดตามจำนวนเงินที่ลบ
             </p>
             <div className="flex gap-3">
               <button
@@ -690,13 +690,13 @@ export default function TransactionDetailPage() {
                 disabled={deletingPayment}
                 className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg font-medium transition-colors"
               >
-                {deletingPayment ? 'à¸à¸³à¸¥à¸±à¸à¸¥à¸...' : 'à¸¥à¸'}
+                {deletingPayment ? 'กำลังลบ...' : 'ลบ'}
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(null)}
                 className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 py-2 px-4 rounded-lg font-medium transition-colors"
               >
-                à¸¢à¸à¹à¸¥à¸´à¸
+                ยกเลิก
               </button>
             </div>
           </div>
@@ -708,26 +708,26 @@ export default function TransactionDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-900">à¸à¸¹à¸ªà¸¥à¸´à¸</h3>
+              <h3 className="text-xl font-bold text-gray-900">ดูสลิป</h3>
               <button
                 onClick={() => setPreviewSlip(null)}
                 className="text-gray-500 hover:text-gray-700 text-2xl"
               >
-                Ã
+                ×
               </button>
             </div>
             {previewSlip.match(/\.(jpg|jpeg|png|gif)$/i) ? (
               <img src={previewSlip} alt="Slip" className="w-full h-auto rounded-lg" />
             ) : (
               <div className="bg-gray-100 rounded-lg p-8 text-center">
-                <p className="text-gray-600 mb-4">à¹à¸à¸¥à¹ PDF</p>
+                <p className="text-gray-600 mb-4">ไฟล์ PDF</p>
                 <a
                   href={previewSlip}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  à¹à¸à¸´à¸à¹à¸à¸¥à¹
+                  เปิดไฟล์
                 </a>
               </div>
             )}
