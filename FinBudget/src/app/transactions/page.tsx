@@ -6,38 +6,70 @@ import { createClient } from '@/lib/supabase-client'
 import { Transaction, STATUS_MAP, TransactionStatus } from '@/lib/types'
 import { Plus, Eye, Edit2, Search, Download } from 'lucide-react'
 import { exportToExcel, exportToCSV } from '@/lib/export'
+import MonthFilter, { DateFilterType } from '@/components/MonthFilter'
 
 function formatCurrency(amount: number): string {
   return `฿${amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+function getMonthRange(year: number, month: number) {
+  const start = `${year}-${String(month).padStart(2, '0')}-01`
+  const lastDay = new Date(year, month, 0).getDate()
+  const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+  return { start, end }
+}
+
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const now = new Date()
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<TransactionStatus | 'all'>('all')
+  const [year, setYear] = useState(now.getFullYear())
+  const [month, setMonth] = useState(now.getMonth() + 1)
+  const [dateFilterType, setDateFilterType] = useState<DateFilterType>('created')
 
   const supabase = createClient()
 
   useEffect(() => {
     fetchTransactions()
-  }, [])
+  }, [year, month, dateFilterType])
 
   useEffect(() => {
-    filterTransactions()
-  }, [transactions, searchTerm, selectedStatus])
+    applyFilters()
+  }, [allTransactions, searchTerm, selectedStatus])
 
   async function fetchTransactions() {
+    setLoading(true)
     try {
-      const { data, error } = await supabase
+      const { start, end } = getMonthRange(year, month)
+
+      let query = supabase
         .from('transactions')
         .select('*, supplier:suppliers(*), category:categories(*), payments(*)')
         .order('created_at', { ascending: false })
 
+      if (dateFilterType === 'created') {
+        query = query.gte('created_at', `${start}T00:00:00`).lte('created_at', `${end}T23:59:59`)
+      }
+
+      const { data, error } = await query
       if (error) throw error
 
-      setTransactions(data || [])
+      let transactions = data || []
+
+      if (dateFilterType === 'payment') {
+        transactions = transactions.filter((t: any) => {
+          if (!t.payments || t.payments.length === 0) return false
+          return t.payments.some((p: any) => {
+            const pDate = p.payment_date
+            return pDate >= start && pDate <= end
+          })
+        })
+      }
+
+      setAllTransactions(transactions)
     } catch (error) {
       console.error('Error fetching transactions:', error)
     } finally {
@@ -45,8 +77,8 @@ export default function TransactionsPage() {
     }
   }
 
-  function filterTransactions() {
-    let filtered = transactions
+  function applyFilters() {
+    let filtered = allTransactions
 
     // Filter by status
     if (selectedStatus !== 'all') {
@@ -105,6 +137,18 @@ export default function TransactionsPage() {
             เพิ่มรายการ
           </Link>
         </div>
+      </div>
+
+      {/* Month Filter */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <MonthFilter
+          year={year}
+          month={month}
+          dateFilterType={dateFilterType}
+          onYearChange={setYear}
+          onMonthChange={setMonth}
+          onDateFilterTypeChange={setDateFilterType}
+        />
       </div>
 
       {/* Search Bar */}
@@ -223,7 +267,7 @@ export default function TransactionsPage() {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow p-12 text-center">
-          <p className="text-gray-500 text-lg">ไม่มีรายการ</p>
+          <p className="text-gray-500 text-lg">ไม่มีรายการในเดือนนี้</p>
           <Link
             href="/transactions/new"
             className="text-blue-600 hover:text-blue-700 font-medium mt-4 inline-block"
